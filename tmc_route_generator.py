@@ -70,7 +70,8 @@ class NetworkEdgesGenerator():
         "W": ["E"]  # W to E
     }
 
-    def __init__(self, tmc_file = 'TMC_Identification.csv',
+    def __init__(self,
+                 tmc_file = 'TMC_Identification.csv',
                  edge_output_file = 'network_edges.csv'):
         self.convertCSVToJSON(tmc_file)
         self.createEdgesThenSaveToFile(edge_output_file)
@@ -80,13 +81,13 @@ class NetworkEdgesGenerator():
         csvFile = open(tmc_file, 'r')
         reader = csv.DictReader(csvFile,
                                 fieldnames=("tmc", "road", "direction", "intersection", "state", "county",
-                                                     "zip", "start_latitude", "start_longitude", "end_latitude",
-                                                     "end_longitude", "miles", "road_order", "timezone_name",
-                                                     "type", "country", "tmclinear", "frc", "border_set", "f_system", "urban_code",
-                                                     "faciltype", "structype", "thrulanes", "route_numb", "route_sign",
-                                                     "route_qual", "altrtename", "aadt", "aadt_singl", "aadt_combi", "nhs",
-                                                     "nhs_pct", "strhnt_typ", "strhnt_pct", "truck", "isprimary",
-                                                     "active_start_date", "active_end_date"))
+                                             "zip", "start_latitude", "start_longitude", "end_latitude",
+                                             "end_longitude", "miles", "road_order", "timezone_name",
+                                             "type", "country", "tmclinear", "frc", "border_set", "f_system", "urban_code",
+                                             "faciltype", "structype", "thrulanes", "route_numb", "route_sign",
+                                             "route_qual", "altrtename", "aadt", "aadt_singl", "aadt_combi", "nhs",
+                                             "nhs_pct", "strhnt_typ", "strhnt_pct", "truck", "isprimary",
+                                             "active_start_date", "active_end_date"))
         # Skip the first row
         next(reader, None)
         # Iterate through each row in the reader and attach to network
@@ -137,12 +138,19 @@ class NetworkEdgesGenerator():
                     progressbar.print(i)
 
         print("Successfully created the edges and saved them to the file " + edge_output_file)
+        return edge_output_file
+
+
 
 class TMCRouteGenerator:
     networkdata = []
     edges = []
+    graph = {}
+    shortest_path = []
 
-    def __init__(self, starting_tmc, ending_tmc,
+    def __init__(self,
+                 starting_tmc,
+                 ending_tmc,
                  tmc_identification_file = "TMC_Identification.csv",
                  create_network_edges_file = True,
                  edge_output_file = "network_edges.csv"):
@@ -158,19 +166,14 @@ class TMCRouteGenerator:
         self.tmc_identification_file = tmc_identification_file
         self.edge_input_file = edge_output_file
         if create_network_edges_file :
-            graph_file = NetworkEdgesGenerator(tmc_identification_file, edge_output_file)
-        self.createNetworkGraph()
+            create_file = NetworkEdgesGenerator(tmc_identification_file, edge_output_file)
+        self.graph = Graph(self.edge_input_file)
+        self.shortest_path = self.processShortestPath(self.graph.edges, self.starting_tmc, self.ending_tmc)
 
-    def createNetworkGraph(self):
-        graph = self.convertEdgeFileToGraph()
-        initialPath = self.shortestPath(graph.edges, self.starting_tmc, self.ending_tmc)
-        print(initialPath)
+    def getShortestPath(self):
+        return self.shortest_path
 
-    def convertEdgeFileToGraph(self):
-        graph = Graph(self.edge_input_file)
-        return graph
-
-    def shortestPath(self, G, start, end):
+    def processShortestPath(self, G, start, end):
         D, P = self.Dijkstra(G, start, end)
         Path = []
         while 1:
@@ -206,7 +209,9 @@ class TMCRouteGenerator:
         return (D, P)
 
 # Initial Run to generate network_edges.csv
-RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)
+#RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)
 
 # For subsequent runs, use this instead.
-# RoutePath = TMCRouteGenerator("119+05585","119+05578",None,False)
+RoutePath = TMCRouteGenerator("119+05585","119+05578",None,False)
+
+print(RoutePath.getShortestPath())
