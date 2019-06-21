@@ -24,9 +24,10 @@ class Graph():
         '''
         self.edges = {}
         self.directionality = {}
-        edges_temp = defaultdict(list)
+        self.edges_temp = defaultdict(list)
+        self.convertToGraph(edge_input_file)
 
-    def add_edge(self, from_node, to_node, weight, from_dir,to_dir):
+    def add_edge(self, from_node, to_node, weight, from_dir, to_dir):
         self.edges_temp[from_node].append({
             to_node: weight
         })
@@ -35,8 +36,23 @@ class Graph():
     def convertListDict(self):
         for d in self.edges_temp:
             self.edges[d] = {}
-            for i in self.edges_temp[d]:
+            for i in  self.edges_temp[d]:
                 self.edges[d].update(i)
+
+    def convertToGraph(self, edge_input_file):
+        tmc_list = []
+
+        # Open the file and attached to csv.DictReader
+        csvFile = open(edge_input_file, 'r')
+        reader = csv.DictReader(csvFile)
+        # Skip the first row
+        next(reader, None)
+        # Iterate through each row in the reader and attach to network
+        for row in reader:
+            self.add_edge(row["start_node"],row["end_node"],row["distance"],row["from_dir"],row["to_dir"])
+
+        self.convertListDict()
+        print("Identified " + str(len(self.edges_temp)) + " Edges")
 
 
 class NetworkEdgesGenerator():
@@ -146,26 +162,13 @@ class TMCRouteGenerator:
         self.createNetworkGraph()
 
     def createNetworkGraph(self):
-        self.convertCSVToJSON()
-        self.assignNetworkTripDistance()
+        graph = self.convertEdgeFileToGraph()
+        initialPath = self.shortestPath(graph.edges, self.starting_tmc, self.ending_tmc)
+        print(initialPath)
 
-    def convertCSVToTuple(self):
-        # Open the file and attached to csv.DictReader
-        csvFile = open(self.edge_input_file, 'r')
-        reader = csv.DictReader(csvFile)
-        # Skip the first row
-        next(reader, None)
-        # Iterate through each row in the reader and attach to network
-        for row in reader:
-            self.edges.append((row["start_node"],row["end_node"],row["distance"],row["from_dir"],row["to_dir"]))
-
-        print("Identified " + str(len(self.edges)) + " Edges")
-        graph = Graph()
-        for edge in self.edges:
-            graph.add_edge(*edge)
-        graph.convertListDict()
-        initialPath = self.shortestPath(graph.edges,self.starting_tmc, self.ending_tmc)
-
+    def convertEdgeFileToGraph(self):
+        graph = Graph(self.edge_input_file)
+        return graph
 
     def shortestPath(self, G, start, end):
         D, P = self.Dijkstra(G, start, end)
@@ -203,4 +206,4 @@ class TMCRouteGenerator:
         return (D, P)
 
 
-RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)
+RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",False)
