@@ -209,9 +209,9 @@ class TMCRouteGenerator:
         return (D, P)
 
 # Initial Run to generate network_edges.csv
-#RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)
+RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)
 
 # For subsequent runs, use this instead.
-RoutePath = TMCRouteGenerator("119+05585","119+05578",None,False)
+#RoutePath = TMCRouteGenerator("119+05585","119+05578",None,False)
 
 print(RoutePath.getShortestPath())
