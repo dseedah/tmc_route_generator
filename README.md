@@ -13,10 +13,12 @@ and prints out all TMCs on that path.
 
 ## Getting Started
 Edit tmc_route_generator.py and define your start and ending TMCs.
+
 `RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)`
 
 If a network_edges.csv file has already been generated from your TMC_Identification.csv file,
 then use this instead:
+
 `RoutePath = TMCRouteGenerator("119+05585","119+05578",None,False)`
 
 Final output is a list of TMCs as in the example below:
