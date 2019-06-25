@@ -12,14 +12,21 @@ and prints out all TMCs on that path.
 2. TMC_Identification.csv (this is obtained from the NPMRDS website or INRIX) 
 
 ## Getting Started
-Edit tmc_route_generator.py and define your start and ending TMCs.
+`TMCRouter = TMCRouteGenerator()`
 
-`RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)`
+To define your start and ending TMCs and generate network_edges.csv
+`TMCRouter.start("119+05606","119+05044","TMC_Identification.csv",True)`
 
-If a network_edges.csv file has already been generated from your TMC_Identification.csv file,
+For subsequent runs where `network_edges.csv` file has already been generated from your TMC_Identification.csv file,
 then use this instead:
 
-`RoutePath = TMCRouteGenerator("119+05585","119+05578",None,False)`
+`TMCRouter.start("119+05606","119+05044","TMC_Identification.csv",False)`
+
+To get list of TMCs, run either of the following:
+```
+print(TMCRouter.getShortestPath())
+print(TMCRouter.getCompletePath())
+```
 
 Final output is a list of TMCs as in the example below:
 `['119+05585', '119P05586', '119+05588', ...]`
