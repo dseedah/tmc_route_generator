@@ -189,10 +189,10 @@ class TMCRouteGenerator:
 
 
 if __name__ == '__main__':
-    RoutePath = TMCRouteGenerator()
+    TMCRouter = TMCRouteGenerator()
     # Initial Run to generate network_edges.csv
-    #RoutePath.start("119+05606","119+05044","TMC_Identification.csv",True)
+    #TMCRouter.start("119+05606","119+05044","TMC_Identification.csv",True)
     # For subsequent runs, use this instead.
-    RoutePath.start("119+05606","119+05044","TMC_Identification.csv",False)
-    print(RoutePath.getShortestPath())
-    print(RoutePath.getCompletePath())
+    TMCRouter.start("119+05606","119+05044","TMC_Identification.csv",False)
+    print(TMCRouter.getShortestPath())
+    print(TMCRouter.getCompletePath())
