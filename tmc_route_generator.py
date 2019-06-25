@@ -1,8 +1,5 @@
 '''
 @author: Dan Seedah
-@credits: Dijkstra's algorithm for shortest paths: David Eppstein, UC Irvine, 4 April 2002,
-          http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/117228
-
 '''
 import csv
 from math import cos, asin, sqrt
