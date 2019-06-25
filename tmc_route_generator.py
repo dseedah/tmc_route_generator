@@ -2,97 +2,67 @@
 @author: Dan Seedah
 @credits: Dijkstra's algorithm for shortest paths: David Eppstein, UC Irvine, 4 April 2002,
           http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/117228
+
 '''
 import csv
-import json
-import time
 from math import cos, asin, sqrt
 from collections import defaultdict
-from priority_dictionary import PriorityDictionary
-from operator import itemgetter
+from dijkstra import shortestPath
 from progress_bar import ProgressBar
 
-
 class Graph():
+    '''
+    This will generate a graph similar to the example from
+    Cormen, Leiserson, and Rivest (Introduction to Algorithms, 1st edition), page 528:
+    G = {'s':{'u':10, 'x':5}, 'u':{'v':1, 'x':2}, 'v':{'y':4}, 'x':{'u':3, 'v':9, 'y':2}, 'y':{'s':7, 'v':6}} </pre>
+    The shortest path from s to v is ['s', 'x', 'u', 'v'] and has length 9.
+    '''
+    edges = {}
+    edges_temp = defaultdict(list)
 
     def __init__(self, edge_input_file):
-        '''
-        This will generate a graph similar to the example from
-        Cormen, Leiserson, and Rivest (Introduction to Algorithms, 1st edition), page 528:
-        G = {'s':{'u':10, 'x':5}, 'u':{'v':1, 'x':2}, 'v':{'y':4}, 'x':{'u':3, 'v':9, 'y':2}, 'y':{'s':7, 'v':6}} </pre>
-        The shortest path from s to v is ['s', 'x', 'u', 'v'] and has length 9.
-        '''
-        self.edges = {}
-        self.directionality = {}
-        self.edges_temp = defaultdict(list)
-        self.convertToGraph(edge_input_file)
+        self.convertInputFileToList(edge_input_file)
+        self.convertListToGraph()
+        print("Identified ", len(self.edges), " nodes and their respective connectors")
 
-    def add_edge(self, from_node, to_node, weight, from_dir, to_dir):
-        self.edges_temp[from_node].append({
-            to_node: weight
-        })
-        self.directionality[from_node] = from_dir
+    def convertInputFileToList(self, edge_input_file):
+        csvFile = open(edge_input_file, 'r')
+        reader = csv.DictReader(csvFile)
+        next(reader, None)
+        for row in reader:
+            self.add_edge(row["start_node"],row["end_node"],row["distance"])
 
-    def convertListDict(self):
+    def add_edge(self, from_node, to_node, distance):
+        self.edges_temp[from_node].append({to_node: distance})
+
+    def convertListToGraph(self):
         for d in self.edges_temp:
             self.edges[d] = {}
             for i in  self.edges_temp[d]:
                 self.edges[d].update(i)
 
-    def convertToGraph(self, edge_input_file):
-        tmc_list = []
 
-        # Open the file and attached to csv.DictReader
-        csvFile = open(edge_input_file, 'r')
-        reader = csv.DictReader(csvFile)
-        # Skip the first row
-        next(reader, None)
-        # Iterate through each row in the reader and attach to network
-        for row in reader:
-            self.add_edge(row["start_node"],row["end_node"],row["distance"],row["from_dir"],row["to_dir"])
-
-        self.convertListDict()
-        print("Identified " + str(len(self.edges_temp)) + " Edges")
-
-
-class NetworkEdgesGenerator():
+class ConvertTMCDataToDict():
     '''
-    This will generate an output file containing the edges
-    and their respective distances.
+    Converts a TMC_Identification.csv file to a Dictionary object
     '''
-    tmc_list = []
-    max_tmc_length = 15
-    edges = []
-    avoid_directions = {
-        "N": ["S"], # N to S
-        "S": ["N"], # S to N
-        "E": ["W"], # E to W
-        "W": ["E"]  # W to E
-    }
+    tmc_ref_data = {}
 
-    def __init__(self,
-                 tmc_file = 'TMC_Identification.csv',
-                 edge_output_file = 'network_edges.csv'):
-        self.convertCSVToJSON(tmc_file)
-        self.createEdgesThenSaveToFile(edge_output_file)
-
-    def convertCSVToJSON(self, tmc_file):
-        # Open the file and attached to csv.DictReader
+    def __init__(self, tmc_file='TMC_Identification.csv', skip_header=True):
         csvFile = open(tmc_file, 'r')
-        reader = csv.DictReader(csvFile,
-                                fieldnames=("tmc", "road", "direction", "intersection", "state", "county",
-                                             "zip", "start_latitude", "start_longitude", "end_latitude",
-                                             "end_longitude", "miles", "road_order", "timezone_name",
-                                             "type", "country", "tmclinear", "frc", "border_set", "f_system", "urban_code",
-                                             "faciltype", "structype", "thrulanes", "route_numb", "route_sign",
-                                             "route_qual", "altrtename", "aadt", "aadt_singl", "aadt_combi", "nhs",
-                                             "nhs_pct", "strhnt_typ", "strhnt_pct", "truck", "isprimary",
-                                             "active_start_date", "active_end_date"))
-        # Skip the first row
-        next(reader, None)
-        # Iterate through each row in the reader and attach to network
+        reader = csv.DictReader(csvFile, fieldnames=("tmc", "road", "direction", "intersection", "state", "county",
+                                                    "zip", "start_latitude", "start_longitude", "end_latitude",
+                                                    "end_longitude", "miles", "road_order", "timezone_name",
+                                                    "type", "country", "tmclinear", "frc", "border_set", "f_system",
+                                                    "urban_code","faciltype", "structype", "thrulanes", "route_numb",
+                                                    "route_sign","route_qual", "altrtename", "aadt", "aadt_singl",
+                                                    "aadt_combi", "nhs", "nhs_pct", "strhnt_typ", "strhnt_pct",
+                                                    "truck", "isprimary", "active_start_date", "active_end_date"))
+        if skip_header: next(reader, None)
+
+        self.tmc_ref_data = {}
         for row in reader:
-            new_dict = {
+            self.tmc_ref_data[row["tmc"]] = {
                 "tmc": row["tmc"],
                 "road": row["road"],
                 "direction": row["direction"],
@@ -103,115 +73,126 @@ class NetworkEdgesGenerator():
                 "end_longitude": row["end_longitude"],
                 "miles": row["miles"],
             }
-            self.tmc_list.append(new_dict)
-            if(float(row["miles"]) > self.max_tmc_length):
-                max_tmc_length = row["miles"]
+        print("Identified ",len(self.tmc_ref_data.keys())," TMCs")
 
-        print("Identified " + str(len(self.tmc_list)) + " TMCs")
-        # Sort by TMC ID and return
-        return sorted(self.tmc_list, key=itemgetter('tmc'), reverse=True)
+    def getTMCRefData(self):
+        return self.tmc_ref_data
+
+
+class NetworkEdgesGenerator():
+    '''
+    This will generate an output file containing the edges
+    and their respective distances.
+    '''
+    tmc_ref_data = {}
+    max_tmc_separation = 50
+    edges = []
+    avoid_directions = {
+        "N": ["S"], # N to S
+        "S": ["N"], # S to N
+        "E": ["W"], # E to W
+        "W": ["E"]  # W to E
+    }
+    tmc_file = ""
+    edge_output_file = ""
+
+    def __init__(self, tmc_file = 'TMC_Identification.csv',
+                 edge_output_file = 'network_edges.csv', max_tmc_separation = 50):
+        self.tmc_file = tmc_file
+        self.edge_output_file = edge_output_file
+        self.max_tmc_separation = max_tmc_separation
+        tmc_converter = ConvertTMCDataToDict(tmc_file)
+        self.tmc_ref_data = tmc_converter.getTMCRefData()
+
+    def getTMCRefData(self):
+        return self.tmc_ref_data
 
     def euclidean_distance(self, lat1, lon1, lat2, lon2):
         p = 0.017453292519943295
         a = 0.5 - cos((lat2 - lat1) * p) / 2 + cos(lat1 * p) * cos(lat2 * p) * (1 - cos((lon2 - lon1) * p)) / 2
         return 12742 * asin(sqrt(a))
 
-    def createEdgesThenSaveToFile(self, edge_output_file):
-        i = 0
-        num_of_iterations = len(self.tmc_list) * len(self.tmc_list)
+    def createEdgesThenSaveToFile(self):
+        counter = 0
+        num_of_iterations = len(self.tmc_ref_data.keys())**2
         progressbar = ProgressBar(num_of_iterations)
-        with open(edge_output_file, mode='w', newline='') as network_edges_file:
+        with open(self.edge_output_file, mode='w', newline='') as network_edges_file:
             writer = csv.writer(network_edges_file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
             writer.writerow(["start_node", "end_node", "distance", "from_dir", "to_dir"])
-            for itmc in self.tmc_list:
-                for jtmc in self.tmc_list:
+            tmc_list = self.tmc_ref_data.items()
+            for i, itmc in tmc_list:
+                for j, jtmc in tmc_list:
                     if (itmc["tmc"] != jtmc["tmc"]):
                         dist = self.euclidean_distance(
                                 float(itmc["start_latitude"]), float(itmc["start_longitude"]),
                                 float(jtmc["start_latitude"]), float(jtmc["start_longitude"]))
-
-                        if (dist <= self.max_tmc_length and
+                        if (dist <= self.max_tmc_separation and
                             jtmc["direction"][0] not in self.avoid_directions[itmc["direction"][0]]):
                             writer.writerow(
                                 [itmc["tmc"], jtmc["tmc"], dist, itmc["direction"][0], jtmc["direction"][0]])
-                    i += 1
-                    progressbar.print(i)
+                    counter += 1
+                    progressbar.print(counter)
 
-        print("Successfully created the edges and saved them to the file " + edge_output_file)
-        return edge_output_file
-
-
+        print("Successfully created the edges and saved them to the file " + self.edge_output_file)
+        return self.edge_output_file
 
 class TMCRouteGenerator:
     networkdata = []
     edges = []
     graph = {}
     shortest_path = []
+    complete_path = []
+    tmc_ref_data = {}
 
-    def __init__(self,
+    def start(self,
                  starting_tmc,
                  ending_tmc,
                  tmc_identification_file = "TMC_Identification.csv",
                  create_network_edges_file = True,
                  edge_output_file = "network_edges.csv"):
-        '''
-        :param starting_tmc:
-        :param ending_tmc:
-        :param tmc_identification_file:
-        :param create_network_graph:
-        :param edge_output_file:
-        '''
+
         self.starting_tmc = starting_tmc
         self.ending_tmc = ending_tmc
         self.tmc_identification_file = tmc_identification_file
         self.edge_input_file = edge_output_file
+        netGen = NetworkEdgesGenerator(tmc_identification_file, edge_output_file)
         if create_network_edges_file :
-            create_file = NetworkEdgesGenerator(tmc_identification_file, edge_output_file)
+            netGen.createEdgesThenSaveToFile()
+        self.tmc_ref_data = netGen.getTMCRefData()
         self.graph = Graph(self.edge_input_file)
-        self.shortest_path = self.processShortestPath(self.graph.edges, self.starting_tmc, self.ending_tmc)
+        self.shortest_path = shortestPath(self.graph.edges, self.starting_tmc, self.ending_tmc)
+        self.completePath()
+
+    def completePath(self):
+        for tmc in self.shortest_path:
+            if tmc not in self.complete_path : self.complete_path.append(tmc)
+            if tmc ==  self.ending_tmc : break;
+            self.findNextTMCOnPath(tmc)
+
+    def findNextTMCOnPath(self, tmc):
+        tmc_end_lat = self.tmc_ref_data[tmc]["end_latitude"]
+        tmc_edges = sorted(self.graph.edges[tmc].items(), key=lambda kv: float(kv[1]))
+        for node in tmc_edges:
+            node_start_lat = self.tmc_ref_data[node[0]]["start_latitude"]
+            if(float(tmc_end_lat) ==  float(node_start_lat))\
+                    and node[0] not in self.complete_path:
+                self.complete_path.append(node[0])
+                self.findNextTMCOnPath(node[0])
 
     def getShortestPath(self):
+        print("Shortest Path has", len(self.shortest_path), "TMCs: ", self.shortest_path)
         return self.shortest_path
 
-    def processShortestPath(self, G, start, end):
-        D, P = self.Dijkstra(G, start, end)
-        Path = []
-        while 1:
-            Path.append(end)
-            if end == start: break
-            end = P[end]
-        Path.reverse()
-        return Path
+    def getCompletePath(self):
+        print("Complete Path has", len(self.complete_path), "TMCs: ", self.complete_path)
+        return self.complete_path
 
-    def Dijkstra(self, G, start, end=None):
-        D = {}  # dictionary of final distances
-        P = {}  # dictionary of predecessors
-        Q = PriorityDictionary()  # est.dist. of non-final vert.
-        Q[start] = 0
 
-        for v in Q:
-            D[v] = Q[v]
-            if v == end: break
-
-            for w in G:
-                try:
-                    #if (graph.directions[next_node] in self.nondirectionalities[graph.directions[current_node]]):
-                    #    continue
-                    vwLength = D[v] + float(G[v][w])
-                    if w in D:
-                        if vwLength < D[w]:
-                            raise (ValueError, "Dijkstra: found better path to already-final vertex")
-                    elif w not in Q or vwLength < Q[w]:
-                        Q[w] = vwLength
-                        P[w] = v
-                except KeyError:
-                    continue
-        return (D, P)
-
-# Initial Run to generate network_edges.csv
-RoutePath = TMCRouteGenerator("119+05585","119+05578","TMC_Identification.csv",True)
-
-# For subsequent runs, use this instead.
-#RoutePath = TMCRouteGenerator("119+05585","119+05578",None,False)
-
-print(RoutePath.getShortestPath())
+if __name__ == '__main__':
+    RoutePath = TMCRouteGenerator()
+    # Initial Run to generate network_edges.csv
+    #RoutePath.start("119+05606","119+05044","TMC_Identification.csv",True)
+    # For subsequent runs, use this instead.
+    RoutePath.start("119+05606","119+05044","TMC_Identification.csv",False)
+    print(RoutePath.getShortestPath())
+    print(RoutePath.getCompletePath())
